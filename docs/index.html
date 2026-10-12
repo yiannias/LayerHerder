@@ -41,11 +41,11 @@
     font-size:.78rem; letter-spacing:.08em; text-transform:uppercase;
     color:var(--accent); font-weight:600; margin:0 0 20px; text-align:center;
   }
-  .hero-lockup{display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;}
-  .hero-art{position:relative; isolation:isolate; width:min(740px, 96vw);}
+  .hero-lockup{display:flex; flex-direction:column; align-items:center; gap:0; text-align:center;}
+  .hero-art{position:relative; isolation:isolate; width:min(820px, 96vw);}
   .hero-art::before{
     content:""; position:absolute; z-index:0; inset:0; pointer-events:none;
-    background:radial-gradient(ellipse 72% 60% at 50% 54%, rgba(60,78,104,.72), rgba(26,35,48,.34) 60%, transparent 100%);
+    background:radial-gradient(ellipse 50% 62% at 50% 52%, rgba(60,78,104,.72), rgba(26,35,48,.34) 54%, transparent 100%);
     clip-path:inset(0 0 6%);
   }
   .hero-logo{position:relative; z-index:1; display:block; width:100%; height:auto;}
@@ -150,7 +150,7 @@
     <p class="eyebrow">Free AutoCAD plug-in · Beta</p>
     <div class="hero-lockup">
       <div class="hero-art">
-        <img class="hero-logo" src="assets/hero-illustration.png" alt="A border collie herding sheep made of stacked blue, orange, and green layers">
+        <img class="hero-logo" src="assets/hero-illustration-trim.png" alt="A border collie herding sheep made of stacked blue, orange, and green layers">
       </div>
       <div class="hero-copy">
         <h1><span>Layer</span> <span class="brand-herder">Herder</span></h1>
