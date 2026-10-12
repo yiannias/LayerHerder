@@ -57,7 +57,7 @@ an individual is officially representing the community in public spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leader responsible for enforcement at
-yiannias@gmail.com. All complaints will be reviewed and investigated promptly
+info@layerherd.com. All complaints will be reviewed and investigated promptly
 and fairly.
 
 All community leaders are obligated to respect the privacy and security of the

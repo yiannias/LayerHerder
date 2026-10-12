@@ -414,7 +414,7 @@ procedure EmailLinkClick(Sender: TObject);
 var
   ErrorCode: Integer;
 begin
-  ShellExec('open', 'mailto:yiannias@gmail.com', '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
+  ShellExec('open', 'mailto:info@layerherd.com', '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
 end;
 
 procedure InitializeWizard;
@@ -472,7 +472,7 @@ begin
   EmailLink.Top := GitHubLink.Top + GitHubLink.Height + ScaleY(4);
   EmailLink.Width := InfoLbl.Width;
   EmailLink.Height := 20;
-  EmailLink.Caption := 'Contact: yiannias@gmail.com';
+  EmailLink.Caption := 'Contact: info@layerherd.com';
   EmailLink.Font.Color := clBlue;
   EmailLink.Font.Style := [fsUnderline];
   EmailLink.Cursor := crHand;
