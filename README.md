@@ -1,7 +1,10 @@
-<img src="docs/assets/logo.png" alt="Layer Herder" width="240">
+<p align="center">
+  <img src="docs/assets/hero-illustration-trim.png" alt="A border collie herding sheep made of stacked blue, orange, and green layers" width="760">
+</p>
 
-# Layer Herder
-Tidy your drawings. Herd your layers into shape.
+<h1 align="center">Layer Herder</h1>
+
+<p align="center">Tidy your drawings. Herd your layers into shape.</p>
 
 Free, offline AutoCAD plug-in that herds drawing layers into your standard. Windows. Formerly ACAD Layer Standardizer.
 
