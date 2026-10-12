@@ -34,19 +34,24 @@
   code.cmd{color:var(--text); font-weight:700; border:1px solid var(--border);}
 
   header.hero{
-    padding:56px 0 48px; border-bottom:1px solid var(--border);
+    padding:48px 0 48px; border-bottom:1px solid var(--border);
     background:linear-gradient(180deg, var(--bg-alt), var(--bg));
   }
   .eyebrow{
     font-size:.78rem; letter-spacing:.08em; text-transform:uppercase;
-    color:var(--accent); font-weight:600; margin:0 0 12px;
+    color:var(--accent); font-weight:600; margin:0 0 20px; text-align:center;
   }
-  .hero-lockup{display:flex; align-items:center; gap:24px; flex-wrap:wrap;}
-  .hero-logo{flex:none; display:block; width:140px; height:auto; border-radius:14px;}
-  h1{font-size:2.5rem; margin:0 0 10px; letter-spacing:-.02em; line-height:1.1;}
+  .hero-lockup{display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;}
+  .hero-logo{
+    display:block; width:min(520px, 94vw); height:auto;
+    background:radial-gradient(ellipse at 50% 58%, rgba(60,78,104,.72), rgba(26,35,48,.34) 58%, transparent 76%);
+  }
+  .hero-copy{width:100%;}
+  h1{font-size:clamp(2.5rem, 6vw, 3.5rem); margin:0 0 12px; letter-spacing:-.02em; line-height:1.1;}
+  .brand-herder{color:#3285db;}
   .tagline{font-size:1.25rem; font-weight:600; margin:0 0 10px;}
-  .lede{color:var(--text-dim); margin:0; max-width:560px; font-size:1.02rem;}
-  .cta-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:28px;}
+  .lede{color:var(--text-dim); margin:0 auto; max-width:640px; font-size:1.02rem;}
+  .cta-row{display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:28px;}
   .btn{
     display:inline-flex; align-items:center; padding:10px 18px;
     border-radius:8px; font-weight:600; font-size:.95rem; text-decoration:none;
@@ -55,7 +60,7 @@
   .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
   .btn.ghost{color:var(--text); background:transparent;}
   .release-meta{color:var(--text-dim); font-size:.85rem; width:100%;}
-  .badges{margin-top:22px; display:flex; gap:8px; flex-wrap:wrap;}
+  .badges{margin-top:22px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap;}
   .badge{
     font-size:.75rem; padding:4px 10px; border-radius:999px; border:1px solid var(--border);
     color:var(--text-dim); font-family:var(--mono);
@@ -117,7 +122,7 @@
   .swatch.heur{border-color:#e0a030; border-top-style:dashed;}
   .swatch.manual{border-color:#a06ee0;}
 
-  /* screenshot placeholders (replace with real captures) */
+  /* screenshots */
   .shot{margin:28px 0 0;}
   .shot img{display:block; width:100%; height:auto; border:1px solid var(--border); border-radius:10px;}
   .shot.small-shot img{max-width:420px;}
@@ -125,12 +130,6 @@
   .shot-pair .shot{margin:0;}
   @media(max-width:700px){.shot-pair{grid-template-columns:1fr;}}
   .shot figcaption{font-size:.85rem; color:var(--text-dim); margin-top:8px;}
-  .placeholder{
-    border:2px dashed var(--warn); border-radius:10px; padding:28px 18px; text-align:center;
-    background:var(--panel); color:var(--text-dim); font-size:.9rem;
-  }
-  .placeholder strong{display:block; color:var(--warn); font-family:var(--mono); font-size:.92rem; margin-bottom:6px; word-break:break-all;}
-
   table.versions{width:100%; border-collapse:collapse; font-size:.95rem; max-width:560px;}
   table.versions th, table.versions td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--border);}
   table.versions th{color:var(--text-dim); font-weight:600; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;}
@@ -150,9 +149,9 @@
   <div class="wrap">
     <p class="eyebrow">Free AutoCAD plug-in · Beta</p>
     <div class="hero-lockup">
-      <img class="hero-logo" src="assets/logo.png" alt="Layer Herder logo: a border collie herding sheep made of stacked layers">
-      <div>
-        <h1>Layer Herder</h1>
+      <img class="hero-logo" src="assets/hero-illustration.png" alt="A border collie herding sheep made of stacked blue, orange, and green layers">
+      <div class="hero-copy">
+        <h1><span>Layer</span> <span class="brand-herder">Herder</span></h1>
         <p class="tagline">Tidy your drawings. Herd your layers into shape.</p>
         <p class="lede">
           Every drawing names its layers differently. Layer Herder maps them onto your standard
@@ -246,11 +245,8 @@
       <li><span class="swatch manual"></span><span><strong>Manual</strong>: a connection you drew yourself.</span></li>
     </ul>
     <figure class="shot">
-      <div class="placeholder">
-        <strong>docs/images/match-types-closeup.png</strong>
-        Screenshot pending. Crop of the editor showing one line of each type: exact (green), memory (blue), suggested (amber, dashed), manual (purple).
-      </div>
-      <figcaption>Close-up of the four match types.</figcaption>
+      <img src="images/match-types-closeup.png" alt="Close-up of the node mapping editor showing green exact matches, amber suggested matches, and purple manual matches." loading="lazy">
+      <figcaption>A closer view of match connections in the node editor.</figcaption>
     </figure>
   </div>
 </section>
