@@ -332,6 +332,7 @@
       <li class="has-cta">
         <h3>Download and run the installer</h3>
         <p>It detects your AutoCAD versions and installs the matching build for each.</p>
+        <p class="small smartscreen-note" style="word-break:break-all;">The installer is not code-signed yet, so Windows SmartScreen may show "Windows protected your PC". Click <strong>More info</strong>, then <strong>Run anyway</strong>. SHA-256 of the installer: <code>91dd96e7e45eeff93142c1a10e6991c5b7dbb8efcad6a1ceecd181ba26c20b46</code>. Layer Herder is open source and works fully offline.</p>
         <p class="step-cta"><a class="btn primary" href="https://github.com/yiannias/LayerHerder/releases/download/v1.4.1-beta/LayerHerder_BETA-1.4.1.exe">Download installer</a></p>
       </li>
       <li>
@@ -365,16 +366,13 @@
   <div class="wrap">
     <h2>Code signing policy</h2>
     <p class="lead">
-      Free code signing provided by SignPath.io, certificate by SignPath Foundation.
+      Layer Herder is not code-signed yet. Releases are unsigned, so Windows SmartScreen may warn when you run the installer (see Get started). I plan to reapply to SignPath Foundation for free code signing once the project has more public visibility.
     </p>
     <p class="lead">
       <strong>Team roles:</strong> Author and approver: Chris Yiannias (GitHub: yiannias). Reviewer: none (single maintainer).
     </p>
     <p class="lead">
-      Only release binaries built from the tagged source in this repository are signed. Each signing request is
-      approved by the maintainer before the certificate is applied. Signed files are the Windows installer and the
-      AutoCAD plug-in and mapping-editor binaries it contains.
-    </p>
+      When signing is in place, only release binaries built from the tagged source in this repository will be signed, and the maintainer will approve each signing request. Signed files will be the Windows installer and the AutoCAD plug-in and mapping-editor binaries it contains.</p>
   </div>
 </section>
 
