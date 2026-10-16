@@ -54,7 +54,7 @@
   </ItemGroup>
 
   <!-- AcadBridgeKit: shared plumbing compiled into this assembly as internal source.
-       Each kit file stays excluded until Layer Herder adopts it. -->
+       The kit lives beside this repo (../AcadBridgeKit). -->
   <Import Project="..\..\..\AcadBridgeKit\csharp\AcadBridgeKit.projitems" Label="Shared" />
   <ItemGroup>
   </ItemGroup>
