@@ -5,11 +5,14 @@ namespace AcLayerStandardizer.Tests;
 
 public class LaunchGuardTests
 {
+    private static string? Describe(LaunchOutcome outcome, string? detail) =>
+        LaunchGuard.DescribeFailure(outcome, detail, LayerHerderWindow.WindowName, LayerHerderWindow.ProgramFile);
+
     [Fact]
     public void Success_and_already_open_need_no_message()
     {
-        Assert.Null(LaunchGuard.DescribeFailure(LaunchOutcome.Launched, null));
-        Assert.Null(LaunchGuard.DescribeFailure(LaunchOutcome.AlreadyOpen, "ignored"));
+        Assert.Null(Describe(LaunchOutcome.Launched, null));
+        Assert.Null(Describe(LaunchOutcome.AlreadyOpen, "ignored"));
     }
 
     [Fact]
@@ -18,7 +21,7 @@ public class LaunchGuardTests
         Assert.Equal(
             "The Layer Standardizer window could not start: its program file (acad_layer_ui.exe) was not found " +
             @"(looked in: C:\Plugins\Contents\R25). Please reinstall the Layer Standardizer.",
-            LaunchGuard.DescribeFailure(LaunchOutcome.ExecutableNotFound, @"C:\Plugins\Contents\R25"));
+            Describe(LaunchOutcome.ExecutableNotFound, @"C:\Plugins\Contents\R25"));
     }
 
     [Fact]
@@ -26,10 +29,10 @@ public class LaunchGuardTests
     {
         Assert.Equal(
             "The Layer Standardizer window could not start (Access is denied). Please reinstall the Layer Standardizer.",
-            LaunchGuard.DescribeFailure(LaunchOutcome.StartFailed, "Access is denied"));
+            Describe(LaunchOutcome.StartFailed, "Access is denied"));
         Assert.Equal(
             "The Layer Standardizer window could not start (unknown). Please reinstall the Layer Standardizer.",
-            LaunchGuard.DescribeFailure(LaunchOutcome.StartFailed, null));
+            Describe(LaunchOutcome.StartFailed, null));
     }
 
     [Fact]
@@ -37,9 +40,9 @@ public class LaunchGuardTests
     {
         Assert.Equal(
             "The Layer Standardizer window could not start (AutoCAD's main window was not found). Try the command again.",
-            LaunchGuard.DescribeFailure(LaunchOutcome.NotReady, "AutoCAD's main window was not found"));
+            Describe(LaunchOutcome.NotReady, "AutoCAD's main window was not found"));
         Assert.Equal(
             "The Layer Standardizer window could not start (unknown). Try the command again.",
-            LaunchGuard.DescribeFailure(LaunchOutcome.NotReady, null));
+            Describe(LaunchOutcome.NotReady, null));
     }
 }

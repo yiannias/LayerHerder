@@ -22,6 +22,6 @@ public class WindowInstanceTests
     {
         Assert.Equal(
             "The Layer Herder window is already open; it follows the active drawing.",
-            WindowInstance.AlreadyOpenMessage);
+            LayerHerderWindow.AlreadyOpenMessage);
     }
 }

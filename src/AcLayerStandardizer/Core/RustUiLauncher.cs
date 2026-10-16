@@ -30,7 +30,7 @@ internal static class RustUiLauncher
         {
             System.Diagnostics.Debug.WriteLine($"Layer Herder could not bring its window forward: {ex.Message}");
         }
-        try { document.Editor.WriteMessage($"\n{WindowInstance.AlreadyOpenMessage}"); }
+        try { document.Editor.WriteMessage($"\n{LayerHerderWindow.AlreadyOpenMessage}"); }
         catch (Exception) { /* the command line is unavailable: nothing else to do */ }
         return true;
     }

@@ -42,7 +42,7 @@ public static class MappingsCommand
             var outcome = RustUiLauncher.TryLaunchFromActiveAutoCad(
                 doc, source, LayerReader.GetEmptyLayers(doc.Database), templatePath, out var detail);
 
-            var message = LaunchGuard.DescribeFailure(outcome, detail);
+            var message = LaunchGuard.DescribeFailure(outcome, detail, LayerHerderWindow.WindowName, LayerHerderWindow.ProgramFile);
             if (message is not null) ed.WriteMessage("\n" + message);
         }
         catch (System.Exception ex)
