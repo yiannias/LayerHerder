@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-mod feed;
-pub use feed::*;
+use acad_bridge::{FeedPoll, PipeClient};
+use std::sync::{Arc, Mutex};
+
+pub use acad_bridge::FeedHandle;
 
 pub const DEFAULT_PIPE_NAME: &str = "acad_layer_standardizer";
 pub const IPC_PROTOCOL_VERSION: u32 = 4;
@@ -233,7 +235,7 @@ pub fn purge_empty_layers(
 /// once-a-second poll fails fast when AutoCAD is gone.
 #[cfg(windows)]
 pub fn poll_events(since: Option<u64>, pending: Vec<PendingEntry>) -> Result<IpcResponse, String> {
-    request_with_attempts(
+    send(
         IpcRequest::PollEvents {
             protocol_version: IPC_PROTOCOL_VERSION,
             since,
@@ -258,9 +260,21 @@ pub fn replay_close(
     })
 }
 
+/// The kit's pipe client, aimed at this product's pipe and trace file.
+#[cfg(windows)]
+fn client() -> PipeClient {
+    PipeClient::new(DEFAULT_PIPE_NAME, "AcLayerStandardizer-rust-ipc.log")
+}
+
 #[cfg(windows)]
 fn request(request: IpcRequest) -> Result<IpcResponse, String> {
-    request_with_attempts(request, 50)
+    send(request, 50)
+}
+
+#[cfg(windows)]
+fn send(request: IpcRequest, attempts: u32) -> Result<IpcResponse, String> {
+    let trace = should_trace(&request);
+    client().send(&request, attempts, trace)
 }
 
 /// Polls fire about once a second; tracing them would grow the log without bound.
@@ -269,92 +283,27 @@ fn should_trace(request: &IpcRequest) -> bool {
     !matches!(request, IpcRequest::PollEvents { .. })
 }
 
-#[cfg(windows)]
-fn request_with_attempts(request: IpcRequest, attempts: u32) -> Result<IpcResponse, String> {
-    use std::{
-        fs::OpenOptions,
-        io::{BufRead, BufReader, Write},
-        thread,
-        time::{Duration, SystemTime, UNIX_EPOCH},
-    };
+/// One change-feed message, as the window receives it.
+pub type FeedMessage = acad_bridge::FeedMessage<FeedEvent>;
 
-    fn trace_to_file(message: &str) {
-        use std::{fs::OpenOptions, io::Write};
-        let Ok(mut file) = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(std::env::temp_dir().join("AcLayerStandardizer-rust-ipc.log"))
-        else {
-            return;
-        };
-        let millis = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_millis())
-            .unwrap_or_default();
-        let _ = writeln!(file, "{millis} pid={} {message}", std::process::id());
-    }
-
-    let tracing = should_trace(&request);
-    let trace = |message: &str| {
-        if tracing {
-            trace_to_file(message);
-        }
-    };
-
-    let pipe_path = format!(r"\\.\pipe\{DEFAULT_PIPE_NAME}");
-    let mut last_error = String::from("AutoCAD IPC pipe is not available");
-    trace("Snapshot request started.");
-
-    for attempt in 0..attempts {
-        if attempt == 0 {
-            trace("Opening named pipe.");
-        }
-        match OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(pipe_path.as_str())
-        {
-            Ok(stream) => {
-                trace("Named pipe opened.");
-                let mut connection = BufReader::new(stream);
-                let request = serde_json::to_vec(&request).map_err(|error| error.to_string())?;
-                trace(&format!("Writing {} request bytes.", request.len()));
-                connection
-                    .get_mut()
-                    .write_all(&request)
-                    .map_err(|error| error.to_string())?;
-                connection
-                    .get_mut()
-                    .write_all(b"\n")
-                    .map_err(|error| error.to_string())?;
-                connection
-                    .get_mut()
-                    .flush()
-                    .map_err(|error| error.to_string())?;
-                trace("Request flushed; waiting for response line.");
-
-                let mut response = String::new();
-                connection
-                    .read_line(&mut response)
-                    .map_err(|error| error.to_string())?;
-                trace(&format!("Read {} response bytes.", response.len()));
-                return serde_json::from_str(&response).map_err(|error| error.to_string());
-            }
-            Err(error) => {
-                last_error = error.to_string();
-                if attempt == 0 || attempt + 1 == attempts {
-                    trace(&format!(
-                        "Pipe open attempt {} failed: {last_error}",
-                        attempt + 1
-                    ));
-                }
-                thread::sleep(Duration::from_millis(100));
-            }
-        }
-    }
-
-    Err(format!("Could not connect to AutoCAD: {last_error}"))
+/// Starts the change-feed poll loop (about one poll per second). The kit runs the
+/// loop; this maps the connector's answers onto it.
+pub fn spawn_feed<F: Fn(FeedMessage) + Send + 'static>(
+    pending: Arc<Mutex<Vec<PendingEntry>>>,
+    deliver: F,
+) -> FeedHandle {
+    acad_bridge::spawn_feed(
+        pending,
+        |since, report| match poll_events(since, report) {
+            Ok(IpcResponse::Events { head, reset, events }) => Ok(FeedPoll::Events { head, reset, events }),
+            Ok(IpcResponse::Error(error)) => Ok(FeedPoll::Error(error)),
+            Ok(_) => Ok(FeedPoll::Other),
+            Err(error) => Err(error),
+        },
+        deliver,
+    )
 }
+
 
 #[cfg(not(windows))]
 pub fn request_drawing_snapshot() -> Result<IpcResponse, String> {
