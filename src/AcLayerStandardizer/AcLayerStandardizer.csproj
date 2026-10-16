@@ -53,4 +53,19 @@
     <EmbeddedResource Include="Resources\ribbon16.png" />
   </ItemGroup>
 
+  <!-- AcadBridgeKit: shared plumbing compiled into this assembly as internal source.
+       Each kit file stays excluded until Layer Herder adopts it. -->
+  <Import Project="..\..\..\AcadBridgeKit\csharp\AcadBridgeKit.projitems" Label="Shared" />
+  <ItemGroup>
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\ActiveDrawingState.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\ActiveDrawingTracker.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\BridgeServer.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\EventFeed.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\MenuSetup.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\Net48Compat.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\RibbonSetup.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\UiLauncher.cs" />
+    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\WindowInstance.cs" />
+  </ItemGroup>
+
 </Project>
