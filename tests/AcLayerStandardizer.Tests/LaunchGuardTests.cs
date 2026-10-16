@@ -5,7 +5,7 @@ namespace AcLayerStandardizer.Tests;
 
 public class LaunchGuardTests
 {
-    private static string Describe(LaunchOutcome outcome, string? detail) =>
+    private static string Describe(LaunchOutcome outcome, string detail) =>
         LaunchGuard.DescribeFailure(outcome, detail, LayerHerderWindow.WindowName, LayerHerderWindow.ProgramFile);
 
     [Fact]
