@@ -13,11 +13,17 @@ namespace AcLayerStandardizer.Core;
 
 public static class IpcBridgeServer
 {
-    // Settable only so test processes (one per target framework, run in parallel)
-    // can use private pipes; production always uses the default.
-    public static string PipeName { get; set; } = "acad_layer_standardizer";
-    private static CancellationTokenSource? _cts;
-    private static Task? _serverTask;
+    // Layer Herder's pipe name. Tests overwrite it before Start so parallel test
+    // processes use private pipes.
+    static IpcBridgeServer() => BridgeServer.PipeName = "acad_layer_standardizer";
+
+    // The pipe is served by the shared kit's BridgeServer.
+    public static string PipeName
+    {
+        get => BridgeServer.PipeName;
+        set => BridgeServer.PipeName = value;
+    }
+
     private static readonly object SnapshotLock = new();
     private static readonly object LogLock = new();
     private static DrawingSnapshot? _drawingSnapshot;
@@ -33,7 +39,6 @@ public static class IpcBridgeServer
         string[] EmptyLayers,
         IReadOnlyDictionary<string, LayerProperties> StandardLayerProperties);
 
-    public static bool IsRunning => _serverTask is not null && !_serverTask.IsCompleted;
 
     // Refusal wording for the open window: switch drawings in AutoCAD, never
     // "run LSTDR again" (that only brings the same window forward).
@@ -66,233 +71,136 @@ public static class IpcBridgeServer
         lock (SnapshotLock) _drawingSnapshot = snapshot;
         Log($"Snapshot stored: sources={snapshot.SourceLayers.Length}; standards={snapshot.StandardLayers.Length}.");
     }
+    public static bool IsRunning => BridgeServer.IsRunning;
 
     public static void Start()
     {
-        if (IsRunning)
-        {
-            Log("Start requested while server task is active.");
-            return;
-        }
-
-        Log("Starting named-pipe server.");
-        Log($"Server assembly loaded from: {typeof(IpcBridgeServer).Assembly.Location}");
-        Log("Named-pipe buffers configured: input=4096, output=4096; UTF-8 response has no BOM.");
-        _cts = new CancellationTokenSource();
-        _serverTask = Task.Run(() => ServerLoop(_cts.Token));
+        RegisterHandlers();
+        BridgeServer.Start();
     }
 
-    public static void Stop()
+    public static void Stop() => BridgeServer.Stop();
+
+    // One handler per request type. Each body is the one the old switch ran for
+    // that type; the kit's server does the reading, writing and error wrapping.
+    private static void RegisterHandlers()
     {
-        _cts?.Cancel();
-        _cts = null;
-        _serverTask = null;
+        // The window polls about once a second; those polls are answered, not logged.
+        BridgeServer.QuietRequestTypes.Add("PollEvents");
+
+        BridgeServer.Register("Ping", _ => BridgeServer.Response("Pong"));
+        BridgeServer.Register("GetDrawingLayers", DrawingLayersResponse);
+        BridgeServer.Register("GetActiveDrawing", ActiveDrawingResponse);
+        BridgeServer.Register("PollEvents", PollEventsResponse);
+        BridgeServer.Register("GetDrawingSnapshot", DrawingSnapshotResponse);
+        BridgeServer.RegisterAsync("ReplayClose", ReplayCloseRequestAsync);
+        BridgeServer.RegisterAsync("GetLayersForDrawing", GetLayersForDrawingRequestAsync);
+        BridgeServer.RegisterAsync("GetStandardLayers", GetStandardLayersRequestAsync);
+        BridgeServer.RegisterAsync("ApplyPlan", ApplyPlanRequestAsync);
+        BridgeServer.RegisterAsync("PurgeEmptyLayers", PurgeEmptyLayersRequestAsync);
     }
 
-    // Accepts connections and hands each one to its own task, then immediately
-    // listens again: a slow request (reading a large drawing's layers) must not
-    // make the window's once-a-second poll fail with "pipe busy". Only the pipe
-    // handling is concurrent; AutoCAD work still runs in the command context.
-    private static async Task ServerLoop(CancellationToken ct)
+    private static string DrawingLayersResponse(JsonElement root)
     {
-        // The Rust window polls once a second on a fresh connection each time;
-        // none of that traffic is logged, or the log would drown everything else.
-        var logListening = true;
-        while (!ct.IsCancellationRequested)
-        {
-            NamedPipeServerStream? pipe = null;
-            try
-            {
-#pragma warning disable CA1416 // Validate platform compatibility (Windows only plugin)
-                pipe = new NamedPipeServerStream(
-                    PipeName,
-                    PipeDirection.InOut,
-                    NamedPipeServerStream.MaxAllowedServerInstances,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous,
-                    4096,
-                    4096);
-#pragma warning restore CA1416
-
-                if (logListening) { Log("Pipe listening."); logListening = false; }
-                await pipe.WaitForConnectionAsync(ct).ConfigureAwait(false);
-                var connected = pipe;
-                pipe = null; // owned by the connection task from here on
-                _ = Task.Run(() => ServeConnectionAsync(connected, ct));
-            }
-            catch (OperationCanceledException)
-            {
-                pipe?.Dispose();
-                break;
-            }
-            catch (Exception ex)
-            {
-                pipe?.Dispose();
-                Log($"Server error: {ex.GetType().Name}: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Layer Herder IPC pipe error: {ex}");
-                logListening = true;
-                // Delay slightly before retrying loop on pipe error
-                try { await Task.Delay(500, ct).ConfigureAwait(false); } catch { break; }
-            }
-        }
+        var layers = GetDrawingSnapshot()?.SourceLayers ?? Array.Empty<string>();
+        return JsonSerializer.Serialize(new { type = "Layers", payload = layers });
     }
 
-    // Serves one client until it disconnects. Never throws: one connection's
-    // failure must not affect the others or the accept loop.
-    private static async Task ServeConnectionAsync(NamedPipeServerStream pipe, CancellationToken ct)
+    private static string ActiveDrawingResponse(JsonElement root)
     {
-        // Stop() cancels the token; disposing the pipe ends a pending read.
-        using var stopRegistration = ct.Register(() => { try { pipe.Dispose(); } catch { } });
-        try
-        {
-            var clientLogged = false;
-            using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, leaveOpen: true);
-            // Do not emit a UTF-8 BOM on the pipe. The Rust client expects
-            // each response line to begin directly with JSON, and the
-            // preamble can also block before the server starts reading.
-            using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, leaveOpen: true) { AutoFlush = true };
-
-            while (pipe.IsConnected && !ct.IsCancellationRequested)
-            {
-                string? line = await reader.ReadLineAsync().ConfigureAwait(false);
-                if (string.IsNullOrEmpty(line)) break;
-
-                var requestType = GetMessageType(line);
-                var isPoll = requestType == "PollEvents";
-                if (!isPoll)
-                {
-                    if (!clientLogged) { Log("Client connected."); clientLogged = true; }
-                    Log($"Request received: {requestType}.");
-                }
-                string responseJson = await HandleMessageAsync(line).ConfigureAwait(false);
-                await writer.WriteLineAsync(responseJson).ConfigureAwait(false);
-                if (!isPoll) Log($"Response sent: {GetMessageType(responseJson)}.");
-            }
-        }
-        catch (Exception ex) when (ct.IsCancellationRequested && ex is ObjectDisposedException or OperationCanceledException or IOException)
-        {
-            // Stopped while this client was connected.
-        }
-        catch (Exception ex)
-        {
-            Log($"Connection error: {ex.GetType().Name}: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Layer Herder IPC connection error: {ex}");
-        }
-        finally
-        {
-            try { pipe.Dispose(); } catch { }
-        }
+        long? knownRevision = null;
+        if (root.TryGetProperty("payload", out var activePayload)
+            && activePayload.ValueKind == JsonValueKind.Object
+            && activePayload.TryGetProperty("known_revision", out var known)
+            && known.ValueKind == JsonValueKind.Number)
+            knownRevision = known.GetInt64();
+        return IpcProtocol.BuildActiveDrawingResponse(ActiveDrawingRegistry.Current, knownRevision);
     }
 
-    private static async Task<string> HandleMessageAsync(string requestJson)
+    private static string PollEventsResponse(JsonElement root)
     {
-        try
-        {
-            using var doc = JsonDocument.Parse(requestJson);
-            var root = doc.RootElement;
-            string msgType = root.GetProperty("type").GetString() ?? "";
-
-            switch (msgType)
-            {
-                case "Ping":
-                    return JsonSerializer.Serialize(new { type = "Pong" });
-
-                case "GetDrawingLayers":
-                    var layers = GetDrawingSnapshot()?.SourceLayers ?? Array.Empty<string>();
-                    return JsonSerializer.Serialize(new { type = "Layers", payload = layers });
-
-                case "GetActiveDrawing":
-                    long? knownRevision = null;
-                    if (root.TryGetProperty("payload", out var activePayload)
-                        && activePayload.ValueKind == JsonValueKind.Object
-                        && activePayload.TryGetProperty("known_revision", out var known)
-                        && known.ValueKind == JsonValueKind.Number)
-                        knownRevision = known.GetInt64();
-                    return IpcProtocol.BuildActiveDrawingResponse(ActiveDrawingRegistry.Current, knownRevision);
-
-                case "PollEvents":
-                    if (CheckProtocolVersion(root) is { } versionErrorPoll) return versionErrorPoll;
-                    long? since = null;
-                    var pollPayload = root.GetProperty("payload");
-                    if (pollPayload.TryGetProperty("since", out var sinceElement)
-                        && sinceElement.ValueKind == JsonValueKind.Number)
-                        since = sinceElement.GetInt64();
-                    // Every poll is a check-in; a malformed report counts as an empty one.
-                    PendingRegistry.Report(IpcProtocol.ParsePending(pollPayload), DateTime.UtcNow);
-                    return IpcProtocol.BuildEventsResponse(EventFeed.Shared.Read(since));
-
-                case "ReplayClose":
-                    if (!root.TryGetProperty("payload", out var replayPayload)
-                        || replayPayload.ValueKind != JsonValueKind.Object
-                        || !replayPayload.TryGetProperty("protocol_version", out var replayVersion)
-                        || replayVersion.ValueKind != JsonValueKind.Number)
-                        return Error("The request is missing its payload or protocol_version.");
-                    if (CheckProtocolVersion(root) is { } versionErrorReplay) return versionErrorReplay;
-                    if (!replayPayload.TryGetProperty("kind", out var kindElement)
-                        || kindElement.ValueKind != JsonValueKind.String
-                        || kindElement.GetString() is not ("drawing" or "quit"))
-                        return Error("The request's kind must be \"drawing\" or \"quit\".");
-                    var replayKind = kindElement.GetString()!;
-                    string? replayDrawingId = null;
-                    if (replayKind == "drawing")
-                    {
-                        if (!replayPayload.TryGetProperty("drawing_id", out var replayIdElement)
-                            || replayIdElement.ValueKind != JsonValueKind.String
-                            || string.IsNullOrEmpty(replayIdElement.GetString()))
-                            return Error("The request is missing drawing_id.");
-                        replayDrawingId = replayIdElement.GetString();
-                    }
-                    // The carried report no longer lists what the user just applied or
-                    // discarded, so the replayed close passes the close guard.
-                    PendingRegistry.Report(IpcProtocol.ParsePending(replayPayload), DateTime.UtcNow);
-                    return await ReplayCloseAsync(replayKind, replayDrawingId).ConfigureAwait(false);
-
-                case "GetLayersForDrawing":
-                    if (!root.TryGetProperty("payload", out var layersPayload)
-                        || layersPayload.ValueKind != JsonValueKind.Object
-                        || !layersPayload.TryGetProperty("protocol_version", out var layersVersion)
-                        || layersVersion.ValueKind != JsonValueKind.Number)
-                        return Error("The request is missing its payload or protocol_version.");
-                    if (CheckProtocolVersion(root) is { } versionErrorLayers) return versionErrorLayers;
-                    if (!layersPayload.TryGetProperty("drawing_id", out var layersIdElement)
-                        || layersIdElement.ValueKind != JsonValueKind.String
-                        || string.IsNullOrEmpty(layersIdElement.GetString()))
-                        return Error("The request is missing drawing_id.");
-                    return await GetLayersForDrawingAsync(layersIdElement.GetString()!).ConfigureAwait(false);
-
-                case "GetDrawingSnapshot":
-                    var snapshot = GetDrawingSnapshot();
-                    if (snapshot is null)
-                        return JsonSerializer.Serialize(new { type = "Error", payload = NoDrawingReadMessage });
-                    return SerializeSnapshot("DrawingSnapshot", snapshot);
-
-                case "GetStandardLayers":
-                    if (CheckProtocolVersion(root) is { } versionErrorGetStandard) return versionErrorGetStandard;
-                    var standardPath = root.GetProperty("payload").GetProperty("path").GetString() ?? string.Empty;
-                    if (string.IsNullOrWhiteSpace(standardPath) || !File.Exists(standardPath))
-                        return Error("The selected standard file could not be found.");
-                    return await GetStandardLayersAsync(standardPath).ConfigureAwait(false);
-
-                case "ApplyPlan":
-                    if (CheckProtocolVersion(root) is { } versionErrorApplyPlan) return versionErrorApplyPlan;
-                    return await ApplyPlanAsync(root).ConfigureAwait(false);
-
-                case "PurgeEmptyLayers":
-                    if (CheckProtocolVersion(root) is { } versionErrorPurgeEmptyLayers) return versionErrorPurgeEmptyLayers;
-                    return await PurgeEmptyLayersAsync(root).ConfigureAwait(false);
-
-                default:
-                    return JsonSerializer.Serialize(new { type = "Error", payload = $"Unknown request type: {msgType}" });
-            }
-        }
-        catch (Exception ex)
-        {
-            return JsonSerializer.Serialize(new { type = "Error", payload = ex.Message });
-        }
+        if (CheckProtocolVersion(root) is { } versionErrorPoll) return versionErrorPoll;
+        long? since = null;
+        var pollPayload = root.GetProperty("payload");
+        if (pollPayload.TryGetProperty("since", out var sinceElement)
+            && sinceElement.ValueKind == JsonValueKind.Number)
+            since = sinceElement.GetInt64();
+        // Every poll is a check-in; a malformed report counts as an empty one.
+        PendingRegistry.Report(IpcProtocol.ParsePending(pollPayload), DateTime.UtcNow);
+        return IpcProtocol.BuildEventsResponse(EventFeed.Shared.Read(since));
     }
 
-    // Kept separate from the AutoCAD-touching handlers so an unsupported client
-    // is rejected without running (or even loading) any AutoCAD code.
+    private static string DrawingSnapshotResponse(JsonElement root)
+    {
+        var snapshot = GetDrawingSnapshot();
+        if (snapshot is null) return Error(NoDrawingReadMessage);
+        return SerializeSnapshot("DrawingSnapshot", snapshot);
+    }
+
+    private static async Task<string> ReplayCloseRequestAsync(JsonElement root)
+    {
+        if (!root.TryGetProperty("payload", out var replayPayload)
+            || replayPayload.ValueKind != JsonValueKind.Object
+            || !replayPayload.TryGetProperty("protocol_version", out var replayVersion)
+            || replayVersion.ValueKind != JsonValueKind.Number)
+            return Error("The request is missing its payload or protocol_version.");
+        if (CheckProtocolVersion(root) is { } versionErrorReplay) return versionErrorReplay;
+        if (!replayPayload.TryGetProperty("kind", out var kindElement)
+            || kindElement.ValueKind != JsonValueKind.String
+            || kindElement.GetString() is not ("drawing" or "quit"))
+            return Error("The request's kind must be \"drawing\" or \"quit\".");
+        var replayKind = kindElement.GetString()!;
+        string? replayDrawingId = null;
+        if (replayKind == "drawing")
+        {
+            if (!replayPayload.TryGetProperty("drawing_id", out var replayIdElement)
+                || replayIdElement.ValueKind != JsonValueKind.String
+                || string.IsNullOrEmpty(replayIdElement.GetString()))
+                return Error("The request is missing drawing_id.");
+            replayDrawingId = replayIdElement.GetString();
+        }
+        // The carried report no longer lists what the user just applied or
+        // discarded, so the replayed close passes the close guard.
+        PendingRegistry.Report(IpcProtocol.ParsePending(replayPayload), DateTime.UtcNow);
+        return await ReplayCloseAsync(replayKind, replayDrawingId).ConfigureAwait(false);
+    }
+
+    private static async Task<string> GetLayersForDrawingRequestAsync(JsonElement root)
+    {
+        if (!root.TryGetProperty("payload", out var layersPayload)
+            || layersPayload.ValueKind != JsonValueKind.Object
+            || !layersPayload.TryGetProperty("protocol_version", out var layersVersion)
+            || layersVersion.ValueKind != JsonValueKind.Number)
+            return Error("The request is missing its payload or protocol_version.");
+        if (CheckProtocolVersion(root) is { } versionErrorLayers) return versionErrorLayers;
+        if (!layersPayload.TryGetProperty("drawing_id", out var layersIdElement)
+            || layersIdElement.ValueKind != JsonValueKind.String
+            || string.IsNullOrEmpty(layersIdElement.GetString()))
+            return Error("The request is missing drawing_id.");
+        return await GetLayersForDrawingAsync(layersIdElement.GetString()!).ConfigureAwait(false);
+    }
+
+    private static async Task<string> GetStandardLayersRequestAsync(JsonElement root)
+    {
+        if (CheckProtocolVersion(root) is { } versionErrorGetStandard) return versionErrorGetStandard;
+        var standardPath = root.GetProperty("payload").GetProperty("path").GetString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(standardPath) || !File.Exists(standardPath))
+            return Error("The selected standard file could not be found.");
+        return await GetStandardLayersAsync(standardPath).ConfigureAwait(false);
+    }
+
+    private static async Task<string> ApplyPlanRequestAsync(JsonElement root)
+    {
+        if (CheckProtocolVersion(root) is { } versionErrorApplyPlan) return versionErrorApplyPlan;
+        return await ApplyPlanAsync(root).ConfigureAwait(false);
+    }
+
+    private static async Task<string> PurgeEmptyLayersRequestAsync(JsonElement root)
+    {
+        if (CheckProtocolVersion(root) is { } versionErrorPurgeEmptyLayers) return versionErrorPurgeEmptyLayers;
+        return await PurgeEmptyLayersAsync(root).ConfigureAwait(false);
+    }
+
     private static string? CheckProtocolVersion(JsonElement root)
     {
         var version = root.GetProperty("payload").GetProperty("protocol_version").GetInt32();
@@ -595,16 +503,6 @@ public static class IpcBridgeServer
         {
             return Error($"Could not apply the mapping plan: {ex.GetBaseException().Message}");
         }
-    }
-
-    private static string GetMessageType(string json)
-    {
-        try
-        {
-            using var document = JsonDocument.Parse(json);
-            return document.RootElement.GetProperty("type").GetString() ?? "<empty>";
-        }
-        catch { return "<invalid-json>"; }
     }
 
     // Also used by ActiveDrawingTracker, so close-guard failures land in the same log.
