@@ -200,7 +200,7 @@ public static class ActiveDrawingTracker
                 TryPublish("LayersChanged", () => new
                 {
                     drawing_id = state.DrawingId,
-                    fingerprint = state.LayerFingerprint
+                    fingerprint = state.Fingerprint
                 });
         }
         catch (System.Exception ex)

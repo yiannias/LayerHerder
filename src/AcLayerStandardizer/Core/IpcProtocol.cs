@@ -101,7 +101,7 @@ public static class IpcProtocol
             {
                 drawing_id = state.DrawingId,
                 display_name = state.DisplayName,
-                layer_fingerprint = state.LayerFingerprint,
+                layer_fingerprint = state.Fingerprint,
                 revision = state.Revision
             }
         });
