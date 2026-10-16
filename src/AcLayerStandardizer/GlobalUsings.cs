@@ -1,5 +1,3 @@
-#if NETFRAMEWORK
-// AcadBridgeKit's Net48Compat extension helpers (compiled only for net48). Global so
-// every file sees them without a using of its own.
+// AcadBridgeKit shared plumbing (source compiled into this assembly). Global so every
+// file sees the kit types, on every target.
 global using AcadBridge;
-#endif

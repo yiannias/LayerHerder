@@ -60,7 +60,6 @@
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\ActiveDrawingState.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\ActiveDrawingTracker.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\BridgeServer.cs" />
-    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\EventFeed.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\MenuSetup.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\RibbonSetup.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\UiLauncher.cs" />
