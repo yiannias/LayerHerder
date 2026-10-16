@@ -59,7 +59,6 @@
   <ItemGroup>
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\MenuSetup.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\RibbonSetup.cs" />
-    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\UiLauncher.cs" />
   </ItemGroup>
 
 </Project>

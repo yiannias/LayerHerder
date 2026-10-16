@@ -13,6 +13,7 @@ internal static class LayerHerderHost
     {
         BridgeServer.ProductName = "Layer Herder";
         BridgeServer.Logger = IpcBridgeServer.Log;
+        UiLauncher.ExecutableName = LayerHerderWindow.ProgramFile;
         ActiveDrawingTracker.Fingerprint = database => LayerFingerprint.Compute(ReadLayerNames(database));
         ActiveDrawingTracker.BeginClose = OnBeginDocumentClose;
     }
