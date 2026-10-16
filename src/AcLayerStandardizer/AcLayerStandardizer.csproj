@@ -61,7 +61,7 @@
     <AcadBridgeKitDir Condition="'$(AcadBridgeKitDir)' == ''">..\..\external\AcadBridgeKit</AcadBridgeKitDir>
   </PropertyGroup>
   <Import Project="$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems" Label="Shared" Condition="Exists('$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems')" />
-  <Target Name="CheckAcadBridgeKit" BeforeTargets="Build" Condition="!Exists('$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems')">
+  <Target Name="CheckAcadBridgeKit" BeforeTargets="BeforeBuild" Condition="!Exists('$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems')">
     <Error Text="AcadBridgeKit not found. Run scripts\fetch-acadbridgekit.ps1" />
   </Target>
   <ItemGroup>

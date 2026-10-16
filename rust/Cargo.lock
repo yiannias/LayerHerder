@@ -5,6 +5,7 @@ version = 4
 [[package]]
 name = "acad_bridge"
 version = "0.1.0"
+source = "git+https://github.com/yiannias/AcadBridgeKit?rev=8f66c3f6da61687a772fbb148c71494eadb7d9eb#8f66c3f6da61687a772fbb148c71494eadb7d9eb"
 dependencies = [
  "serde",
  "serde_json",
@@ -2430,6 +2431,7 @@ dependencies = [
 [[package]]
 name = "spatial-ui-kit"
 version = "0.1.0"
+source = "git+https://github.com/yiannias/SpatialUiKit?rev=70d5d3b18caa90036257e8a369725dd3a6ebf741#70d5d3b18caa90036257e8a369725dd3a6ebf741"
 dependencies = [
  "egui",
  "egui_dock",
@@ -3674,11 +3676,3 @@ checksum = "27bc9d5b815bc103f142aa054f561d9187d191692ec7c2d1e2b4737f8dbd7296"
 dependencies = [
  "zune-core",
 ]
-
-[[patch.unused]]
-name = "spatial-hatch-kit"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "spatial-geometry"
-version = "0.1.0"
