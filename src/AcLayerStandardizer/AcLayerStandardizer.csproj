@@ -62,7 +62,6 @@
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\BridgeServer.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\EventFeed.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\MenuSetup.cs" />
-    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\Net48Compat.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\RibbonSetup.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\UiLauncher.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\WindowInstance.cs" />
