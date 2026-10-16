@@ -33,7 +33,7 @@ public class EntryPoint : IExtensionApplication
             _ribbonTimer.Start();
         }
 
-        MenuSetup.Setup(config);
+        LayerHerderHost.SetupMenu(config);
 
         try
         {
@@ -54,7 +54,7 @@ public class EntryPoint : IExtensionApplication
         try
         {
             var config = PluginConfig.Load();
-            if (RibbonSetup.Setup(config))
+            if (LayerHerderHost.SetupRibbon(config))
             {
                 _ribbonTimer?.Stop();
                 _ribbonTimer = null;

@@ -9,6 +9,33 @@ namespace AcLayerStandardizer.Core;
 // Install once, before the kit's tracker or pipe server starts.
 internal static class LayerHerderHost
 {
+    // The Add-ins ribbon panel and button, with Layer Herder's names and icons.
+    public static bool SetupRibbon(PluginConfig config)
+    {
+        if (!config.InstallRibbon) return true;
+        return RibbonSetup.Setup(new RibbonOptions
+        {
+            PanelTitle = "Layer Herder",
+            ButtonName = "Layer Herder",
+            ButtonText = "Layer\nHerder",
+            ToolTip = "Open Layer Herder",
+            CommandHandler = new LsrCommandHandler(),
+            ResourcePrefix = "AcLayerStandardizer.Resources.",
+            LargeIconFile = "ribbon32.png",
+            SmallIconFile = "ribbon16.png",
+        });
+    }
+
+    // The top-level menu item. Also takes off the menu an older release added.
+    public static bool SetupMenu(PluginConfig config) =>
+        MenuSetup.Setup(new MenuOptions
+        {
+            MenuTitle = "Layer Herder",
+            LegacyMenuTitle = "Layer Standardizer",
+            ItemLabel = "Layer Herder...",
+            CommandName = "HERD",
+        }, config.InstallMenu);
+
     public static void Install()
     {
         BridgeServer.ProductName = "Layer Herder";
