@@ -57,8 +57,6 @@
        Each kit file stays excluded until Layer Herder adopts it. -->
   <Import Project="..\..\..\AcadBridgeKit\csharp\AcadBridgeKit.projitems" Label="Shared" />
   <ItemGroup>
-    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\ActiveDrawingTracker.cs" />
-    <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\BridgeServer.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\MenuSetup.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\RibbonSetup.cs" />
     <Compile Remove="..\..\..\AcadBridgeKit\csharp\AcadBridge\UiLauncher.cs" />

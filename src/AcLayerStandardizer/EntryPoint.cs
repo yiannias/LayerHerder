@@ -37,6 +37,7 @@ public class EntryPoint : IExtensionApplication
 
         try
         {
+            LayerHerderHost.Install();
             IpcBridgeServer.Start();
             ActiveDrawingTracker.Start();
         }
