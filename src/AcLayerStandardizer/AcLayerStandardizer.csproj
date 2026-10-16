@@ -54,8 +54,16 @@
   </ItemGroup>
 
   <!-- AcadBridgeKit: shared plumbing compiled into this assembly as internal source.
-       The kit lives beside this repo (../AcadBridgeKit). -->
-  <Import Project="..\..\..\AcadBridgeKit\csharp\AcadBridgeKit.projitems" Label="Shared" />
+       Uses the sibling checkout (../../../AcadBridgeKit) when the SpatialStudio umbrella
+       layout is present; otherwise the clone made by scripts\fetch-acadbridgekit.ps1. -->
+  <PropertyGroup>
+    <AcadBridgeKitDir Condition="Exists('..\..\..\AcadBridgeKit\csharp\AcadBridgeKit.projitems')">..\..\..\AcadBridgeKit</AcadBridgeKitDir>
+    <AcadBridgeKitDir Condition="'$(AcadBridgeKitDir)' == ''">..\..\external\AcadBridgeKit</AcadBridgeKitDir>
+  </PropertyGroup>
+  <Import Project="$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems" Label="Shared" Condition="Exists('$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems')" />
+  <Target Name="CheckAcadBridgeKit" BeforeTargets="Build" Condition="!Exists('$(AcadBridgeKitDir)\csharp\AcadBridgeKit.projitems')">
+    <Error Text="AcadBridgeKit not found. Run scripts\fetch-acadbridgekit.ps1" />
+  </Target>
   <ItemGroup>
   </ItemGroup>
 

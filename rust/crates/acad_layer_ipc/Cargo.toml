@@ -7,4 +7,4 @@ description = "IPC protocols and Named Pipe server/client for AutoCAD layer stan
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-acad_bridge = { path = "../../../../AcadBridgeKit/rust/acad_bridge" }
+acad_bridge = { git = "https://github.com/yiannias/AcadBridgeKit", rev = "8f66c3f6da61687a772fbb148c71494eadb7d9eb" }

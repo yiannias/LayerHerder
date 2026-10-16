@@ -28,6 +28,12 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
+      # AcadBridgeKit (private repo) is cloned here because there is no sibling checkout in CI.
+      # Needs a GitHub token with read access to yiannias/AcadBridgeKit; not configured yet.
+      - name: Fetch AcadBridgeKit
+        shell: pwsh
+        run: ./scripts/fetch-acadbridgekit.ps1
+
       # Restores NuGet (AutoCAD.NET refs), runs dotnet test, cargo build --release, ISCC.
       # Needs SpatialUiKit as a git dependency (not yet switched; see SignPath notes).
       - name: Build, test, package

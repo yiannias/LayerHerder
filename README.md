@@ -36,6 +36,15 @@ Team roles: Author and approver: Chris Yiannias (GitHub: yiannias). Reviewer: no
 
 Only release binaries built from the tagged source in this repository are signed. Each signing request is approved by the maintainer before the certificate is applied.
 
+## Building from source
+
+`build.ps1` builds the Rust editor and the .NET plug-in. The .NET build compiles the C# source of
+[AcadBridgeKit](https://github.com/yiannias/AcadBridgeKit), a private repo pinned in `acadbridgekit.rev`.
+If the SpatialStudio umbrella folder has a sibling `AcadBridgeKit` checkout, that copy is used. Otherwise
+`scripts\fetch-acadbridgekit.ps1` clones it into `external\AcadBridgeKit` at the pinned rev. The Rust
+crates fetch the same rev from GitHub, unless the umbrella's `.cargo/config.toml` points them at the
+sibling. Building outside the umbrella needs GitHub access to the private repo.
+
 ## Privacy
 
 Layer Herder is fully offline. It makes no network connections, does not check for updates, and collects no data. Settings and translation memory are stored only on your computer, in your user profile (`%APPDATA%\AcLayerStandardizer`). The only outbound action is the Settings link to the project website, which opens in your own browser when you click it.

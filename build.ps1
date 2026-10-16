@@ -48,6 +48,11 @@ Write-Host ""
 
 if (-not $PackageOnly)
 {
+    # AcadBridgeKit C# source: sibling checkout, or a clone via the fetch script
+    Write-Host ">> Fetching AcadBridgeKit..." -ForegroundColor Yellow
+    & (Join-Path $SolutionRoot "scripts\fetch-acadbridgekit.ps1")
+    if ($LASTEXITCODE -ne 0) { exit 1 }
+
     # Restore
     Write-Host ">> Restoring packages..." -ForegroundColor Yellow
     dotnet restore $ProjectDir\AcLayerStandardizer.csproj
