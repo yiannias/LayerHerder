@@ -23,7 +23,7 @@ use std::{
 
 mod close_dialog;
 mod data;
-mod launch;
+
 mod live_sync;
 mod mapping_editor;
 mod sessions;
@@ -1533,21 +1533,9 @@ impl LayerStandardizerApp {
     }
 }
 
-#[cfg(target_os = "windows")]
+/// Makes the window owned by AutoCAD's main window. The Win32 call lives in the
+/// shared kit; this only gets the window's handle from eframe.
 fn attach_native_window_to_owner(frame: &eframe::Frame, owner_hwnd: isize) -> Result<(), String> {
-    use windows_sys::Win32::Foundation::{GetLastError, SetLastError, HWND};
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        IsWindow, SetWindowLongPtrW, GWLP_HWNDPARENT,
-    };
-
-    if owner_hwnd == 0 {
-        return Err("the owner HWND was zero".to_string());
-    }
-
-    if unsafe { IsWindow(owner_hwnd as HWND) } == 0 {
-        return Err("the supplied AutoCAD HWND is not a valid window".to_string());
-    }
-
     let window = frame
         .winit_window()
         .ok_or_else(|| "the native window handle is unavailable".to_string())?;
@@ -1555,24 +1543,7 @@ fn attach_native_window_to_owner(frame: &eframe::Frame, owner_hwnd: isize) -> Re
     let RawWindowHandle::Win32(handle) = handle.as_raw() else {
         return Err("the UI window does not have a Win32 handle".to_string());
     };
-
-    // Win32 returns the previous owner value, which may be zero on success;
-    // clear/read last-error to distinguish that from an API failure.
-    unsafe {
-        SetLastError(0);
-        let previous = SetWindowLongPtrW(handle.hwnd.get() as HWND, GWLP_HWNDPARENT, owner_hwnd);
-        let error = GetLastError();
-        if previous == 0 && error != 0 {
-            return Err(format!("SetWindowLongPtrW failed with Win32 error {error}"));
-        }
-    }
-
-    Ok(())
-}
-
-#[cfg(not(target_os = "windows"))]
-fn attach_native_window_to_owner(_frame: &eframe::Frame, _owner_hwnd: isize) -> Result<(), String> {
-    Err("AutoCAD window ownership is supported only on Windows".to_string())
+    acad_bridge::owner::attach_to_owner(handle.hwnd.get(), owner_hwnd)
 }
 
 /// Title-bar and taskbar icon. Raw 64x64 RGBA, generated with the other
@@ -1587,9 +1558,9 @@ fn app_icon() -> egui::IconData {
 }
 
 fn main() -> eframe::Result<()> {
-    let args = launch::parse_launch_args(std::env::args().skip(1));
+    let args = acad_bridge::parse_launch_args(std::env::args().skip(1));
     let owner_hwnd = args.owner_hwnd;
-    let first_run_notice = args.first_run_notice;
+    let first_run_notice = args.has_flag("--first-run-notice");
 
     let user_preferences = load_preferences();
     let storage_path = preferences_path().map(|path| path.with_file_name("rust_ui_state.ron"));

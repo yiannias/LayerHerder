@@ -7,6 +7,7 @@ description = "Spatial UI Kit frontend for Layer Herder"
 [dependencies]
 acad_layer_core = { path = "../acad_layer_core" }
 acad_layer_ipc = { path = "../acad_layer_ipc" }
+acad_bridge = { path = "../../../../AcadBridgeKit/rust/acad_bridge" }
 spatial-ui-kit = { git = "https://github.com/yiannias/SpatialUiKit", rev = "70d5d3b18caa90036257e8a369725dd3a6ebf741" }
 egui = "0.35"
 eframe = { version = "0.35", default-features = false, features = ["wgpu", "default_fonts", "persistence"] }
